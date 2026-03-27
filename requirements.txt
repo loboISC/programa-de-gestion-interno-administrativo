@@ -1,0 +1,21 @@
+# UI
+PySide6==6.7.2
+
+# Backend API
+Flask==3.0.3
+Flask-Cors==4.0.1
+
+# Base de datos
+SQLAlchemy==2.0.32
+psycopg2-binary==2.9.9
+
+# Seguridad
+cryptography==43.0.1
+argon2-cffi==23.1.0
+
+# Utilidades
+python-dotenv==1.0.1
+requests==2.32.3
+
+# Opcional (mejor DX)
+pydantic==2.8.2
