@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, jsonify, request
 
-from backend.services.auth_service import AuthenticationError, AuthService
+from backend.services.auth_service import AuthenticationError, AuthService, RegistrationError
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -12,7 +12,8 @@ def login():
 
     try:
         result = service.login(
-            master_password=payload.get("master_password", ""),
+            username=payload.get("username", ""),
+            password=payload.get("password", ""),
             ip_address=request.remote_addr,
             user_agent=request.headers.get("User-Agent"),
         )
@@ -20,6 +21,19 @@ def login():
         return jsonify({"ok": False, "message": str(exc)}), 401
 
     return jsonify({"ok": True, **result}), 200
+
+
+@auth_bp.post("/register")
+def register():
+    payload = request.get_json(silent=True) or {}
+    service: AuthService = current_app.config["auth_service"]
+
+    try:
+        result = service.register_user(payload)
+    except RegistrationError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+
+    return jsonify({"ok": True, "user": result}), 201
 
 
 @auth_bp.get("/session")

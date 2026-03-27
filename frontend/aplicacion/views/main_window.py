@@ -38,7 +38,7 @@ class AdminSystemApp(QMainWindow):
         self.api_client = ApiClient()
         self.current_user = "irvingag"
 
-        self.setWindowTitle("VaultDesk | Sistema Administrativo")
+        self.setWindowTitle("SGA| Sistema Administrativo")
         self.resize(1440, 900)
         self.setStyleSheet(APP_STYLESHEET)
 
@@ -47,6 +47,7 @@ class AdminSystemApp(QMainWindow):
 
         self.login_view = LoginView()
         self.login_view.login_requested.connect(self.handle_login)
+        self.login_view.register_requested.connect(self.handle_register)
 
         self.shell_page = self._build_shell_page()
 
@@ -87,7 +88,7 @@ class AdminSystemApp(QMainWindow):
 
         self.views = {
             "dashboard": DashboardView(),
-            "hosting": HostingProvidersView(),
+            "hosting": HostingProvidersView(api_client=self.api_client),
             "vault": PasswordVaultView(api_client=self.api_client),
             "docs": DocumentationView(),
             "notifications": PlaceholderView(
@@ -99,6 +100,7 @@ class AdminSystemApp(QMainWindow):
                 "Aqui puedes preparar ajustes de API, cifrado, sesion y preferencias visuales.",
             ),
         }
+        self.views["dashboard"].register_requested.connect(self.handle_register)
 
         for key in sections:
             self.content_stack.addWidget(self.views[key[0]])
@@ -112,13 +114,13 @@ class AdminSystemApp(QMainWindow):
         self.navigate_to("dashboard")
         return page
 
-    def handle_login(self, master_password: str) -> None:
-        if not master_password.strip():
-            self.login_view.set_status("Debes ingresar la contraseña maestra.", is_error=True)
+    def handle_login(self, username: str, password: str) -> None:
+        if not username.strip() or not password.strip():
+            self.login_view.set_status("Debes ingresar usuario y contraseña.", is_error=True)
             return
 
         try:
-            response = self.api_client.login(master_password)
+            response = self.api_client.login(username, password)
         except Exception as exc:
             self.login_view.set_status(f"No fue posible iniciar sesión: {exc}", is_error=True)
             return
@@ -128,14 +130,30 @@ class AdminSystemApp(QMainWindow):
         self.login_view.password_input.clear()
         self.login_view.set_status("Acceso concedido. Sesion iniciada correctamente.")
         self.root.setCurrentWidget(self.shell_page)
+        self.views["hosting"].load_providers()
         self.views["vault"].load_credentials()
         self.reset_session_timer()
+
+    def handle_register(self, payload: dict) -> None:
+        try:
+            user = self.api_client.register_user(payload)
+        except Exception as exc:
+            self.login_view.set_status(f"No se pudieron crear las credenciales: {exc}", is_error=True)
+            return
+
+        self.login_view.fill_credentials(payload["username"], payload["password"])
+        self.login_view.set_status(
+            f"Credenciales creadas para {user['username']}. Ahora puedes iniciar sesión.",
+            is_error=False,
+        )
 
     def navigate_to(self, section: str) -> None:
         view = self.views.get(section)
         if view is None:
             return
         self.content_stack.setCurrentWidget(view)
+        if section == "hosting":
+            self.views["hosting"].load_providers()
         if section == "vault":
             self.views["vault"].load_credentials()
         for button in self.sidebar.button_group.buttons():

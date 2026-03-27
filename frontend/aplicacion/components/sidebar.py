@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QButtonGroup, QFrame, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 
 class Sidebar(QFrame):
@@ -12,16 +15,33 @@ class Sidebar(QFrame):
         self.sections = sections
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 20, 18, 20)
+        layout.setContentsMargins(18, 22, 18, 20)
         layout.setSpacing(14)
 
+        brand_row = QHBoxLayout()
+        brand_row.setSpacing(12)
+
+        logo_label = QLabel()
+        logo_label.setObjectName("LogoMark")
+        logo_path = Path(__file__).resolve().parents[1] / "assets" / "logoprincipal.png"
+        pixmap = QPixmap(str(logo_path))
+        if not pixmap.isNull():
+            logo_label.setPixmap(
+                pixmap.scaled(52, 52, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            )
+
+        brand_text = QVBoxLayout()
         title = QLabel("VaultDesk")
-        title.setObjectName("BrandTitle")
+        title.setObjectName("SidebarBrandTitle")
         subtitle = QLabel("Administracion segura")
         subtitle.setObjectName("SidebarCaption")
+        brand_text.addWidget(title)
+        brand_text.addWidget(subtitle)
 
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        brand_row.addWidget(logo_label, alignment=Qt.AlignTop)
+        brand_row.addLayout(brand_text)
+
+        layout.addLayout(brand_row)
         layout.addSpacing(10)
 
         self.button_group = QButtonGroup(self)

@@ -12,8 +12,10 @@ from flask_cors import CORS
 
 from backend.config import settings
 from backend.routes.auth_routes import auth_bp
+from backend.routes.hosting_routes import hosting_bp
 from backend.routes.vault_routes import vault_bp
 from backend.services.auth_service import AuthService
+from backend.services.hosting_service import HostingService, HostingServiceError
 from backend.services.system_service import SystemService
 from backend.services.vault_service import VaultService, VaultServiceError
 from database.connection import init_engine
@@ -28,6 +30,7 @@ def create_app() -> Flask:
         default_username=settings.default_username,
         session_timeout_minutes=settings.session_timeout_minutes,
     )
+    app.config["hosting_service"] = HostingService()
     app.config["vault_service"] = VaultService()
     app.config["system_service"] = SystemService()
 
@@ -42,7 +45,12 @@ def create_app() -> Flask:
     def handle_vault_error(error: VaultServiceError):
         return jsonify({"ok": False, "message": str(error)}), 400
 
+    @app.errorhandler(HostingServiceError)
+    def handle_hosting_error(error: HostingServiceError):
+        return jsonify({"ok": False, "message": str(error)}), 400
+
     app.register_blueprint(auth_bp)
+    app.register_blueprint(hosting_bp)
     app.register_blueprint(vault_bp)
     return app
 

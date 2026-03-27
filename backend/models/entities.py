@@ -27,6 +27,7 @@ class AppUser(TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("TRUE"))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    hosting_providers: Mapped[list["HostingProvider"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     vault_credentials: Mapped[list["VaultCredential"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     sessions: Mapped[list["UserSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
@@ -61,6 +62,41 @@ class HostingProvider(TimestampMixin, Base):
     notes: Mapped[str | None] = mapped_column(Text)
     is_favorite: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("FALSE"))
     last_accessed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped["AppUser"] = relationship(back_populates="hosting_providers")
+    domains: Mapped[list["HostingDomain"]] = relationship(back_populates="provider", cascade="all, delete-orphan")
+    mailboxes: Mapped[list["HostingMailbox"]] = relationship(back_populates="provider", cascade="all, delete-orphan")
+
+
+class HostingDomain(TimestampMixin, Base):
+    __tablename__ = "hosting_domains"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    provider_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("hosting_providers.id", ondelete="CASCADE"), nullable=False
+    )
+    domain_name: Mapped[str] = mapped_column(String(180), nullable=False)
+    domain_url: Mapped[str | None] = mapped_column(Text)
+    expiration_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_payment_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    provider: Mapped["HostingProvider"] = relationship(back_populates="domains")
+
+
+class HostingMailbox(TimestampMixin, Base):
+    __tablename__ = "hosting_mailboxes"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    provider_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("hosting_providers.id", ondelete="CASCADE"), nullable=False
+    )
+    email_address: Mapped[str] = mapped_column(String(180), nullable=False)
+    encrypted_password: Mapped[bytes | None] = mapped_column(LargeBinary)
+    owner_name: Mapped[str | None] = mapped_column(String(150))
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    provider: Mapped["HostingProvider"] = relationship(back_populates="mailboxes")
 
 
 class VaultCredential(TimestampMixin, Base):

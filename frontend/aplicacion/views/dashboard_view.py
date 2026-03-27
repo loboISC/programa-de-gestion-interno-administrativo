@@ -1,9 +1,13 @@
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QPushButton, QVBoxLayout
 
 from components.cards import SummaryCard
+from views.login_view import RegisterUserDialog
 
 
 class DashboardView(QFrame):
+    register_requested = Signal(dict)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ContentPanel")
@@ -30,7 +34,10 @@ class DashboardView(QFrame):
         actions_layout.setContentsMargins(20, 20, 20, 20)
         actions_layout.setSpacing(12)
         actions_layout.addWidget(QLabel("Accesos rapidos"))
-        actions_layout.addWidget(QPushButton("Agregar credencial"))
+        add_credential_button = QPushButton("Agregar credencial")
+        add_credential_button.setObjectName("PrimaryButton")
+        add_credential_button.clicked.connect(self.open_register_dialog)
+        actions_layout.addWidget(add_credential_button)
         actions_layout.addWidget(QPushButton("Registrar proveedor"))
         actions_layout.addWidget(QPushButton("Subir documento"))
 
@@ -39,3 +46,8 @@ class DashboardView(QFrame):
         layout.addLayout(cards_grid)
         layout.addWidget(quick_actions)
         layout.addStretch(1)
+
+    def open_register_dialog(self) -> None:
+        dialog = RegisterUserDialog(self)
+        if dialog.exec():
+            self.register_requested.emit(dialog.get_payload())
